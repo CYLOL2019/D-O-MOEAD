@@ -1,0 +1,319 @@
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+   1  *TITLE eps-Constraint Method for Multiobjective Optimization (EPSCM,SEQ=319)
+      The eps-Constraint Method
+       
+   6   
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+MIQCP model definitions
+
+
+  10  Option MIQCP = cplex;
+  11  Option IntVarUp = 0;
+  12   
+  13   
+  14   
+  15  set i,n,g,k;
+  16  Alias (i,j);
+  17   
+  18  Parameter mu(i),nor(n),cov(i,i),SumOne,FloorC,RoundLot;
+  19  *----------------------------gdxin
+GDXIN   /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/MtoG.gdx
+--- LOAD  i = 1:i
+--- LOAD  n = 2:n
+--- LOAD  g = 6:g
+--- LOAD  k = 10:k
+--- LOAD  mu = 3:mu
+--- LOAD  nor = 4:nor
+--- LOAD  cov = 5:cov
+--- LOAD  SumOne = 7:SumOne
+--- LOAD  FloorC = 8:FloorC
+--- LOAD  RoundLot = 9:RoundLot
+  24  *-----------------------
+  25  Parameter dir(k) direction of the objective functions 1 for max and -1 for min
+  26     / 1  -1
+  27       2  -1
+  28     /;
+  29  Integer Variables
+  30      x(i) 'weights of assets';
+  31  Variables
+  32      z(k)     'objective function variable';
+  33   
+  34   
+  35   
+  36   
+  37   
+  38  Equations
+  39      ObjRisk    total risk
+  40      ObjReturn  total profit
+  41      SumOneCon  sum to one constraint
+  42      FloorCon(i) floor constraints
+  43      CeilCon(i) ceil consrraints;
+  44   
+  45  ObjRisk ..  (sum(i, x(i)*sum(j,cov(i,j)*x(j)))*sqr(RoundLot)-nor('2'))/(nor('1')-nor('2')) =e= z('1');
+  46  ObjReturn ..  -(sum(i, x(i)*mu(i)*RoundLot)-nor('4'))/(nor('3')-nor('4')) =e= z('2');
+  47  SumOneCon .. sum(i, x(i)) =e= SumOne;
+  48  FloorCon(i) .. x(i) =g= FloorC;
+  49  CeilCon(i) .. x(i) =l= SumOne;
+  50   
+  51  *---------------------------------------------------------------------------
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+eps-constraint method
+
+
+  53   
+  54  Set k1(k) the first element of k, km1(k) all but the first elements of k;
+  55  k1(k)$(ord(k)=1) = yes; km1(k)=yes; km1(k1) = no;
+  56  Set kk(k)     active objective function in constraint allobj
+  57   
+  58  Parameter
+  59     rhs(k)     right hand side of the constrained obj functions in eps-constraint
+  60     maxobj(k)  maximum value from the payoff table
+  61     minobj(k)  minimum value from the payoff table
+  62     numk(k) ordinal value of k starting with 1
+  63   
+  64  Scalar
+  65  iter   total number of iterations
+  66  infeas total number of infeasibilities
+  67  elapsed_time elapsed time for payoff and e-sonstraint
+  68  start start time
+  69  finish finish time
+  70   
+  71  Variables
+  72     a_objval   auxiliary variable for the objective function
+  73     obj        auxiliary variable during the construction of the payoff table
+  74  Positive Variables
+  75     sl(k)      slack or surplus variables for the eps-constraints
+  76  Equations
+  77     con_obj(k) constrained objective functions
+  78     augm_obj   augmented objective function to avoid weakly efficient solutions
+  79     allobj     all the objective functions in one expression;
+  80   
+  81  con_obj(km1)..   z(km1) - dir(km1)*sl(km1) =e= rhs(km1);
+  82   
+  83  * We optimize the first objective function and put the others as constraints
+  84  * the second term is for avoiding weakly efficient points
+  85   
+  86  * objfun=max z1 + 0.001*(s1/r1+0.1 s2/r2+ 0.01*s3/r3+...)
+  87  * 1.0e-7 for the second priority objective, 1.0e-3 is too large here
+  88  augm_obj..
+  89    sum(k1,dir(k1)*z(k1))+1.0e-7*sum(km1,power(10,-(numk(km1)-1))*sl(km1)/(maxobj(km1)-minobj(km1))) =e= a_objval;
+  90   
+  91  allobj..  sum(kk, dir(kk)*z(kk)) =e= obj;
+  92   
+  93  Model mod_payoff    / ObjRisk, ObjReturn, SumOneCon, FloorCon, CeilCon, allobj / ;
+  94  *--------------------------------------------------------------------------
+  95  Parameter
+  96    payoff(k,k)  payoff tables entries;
+  97  Alias(k,kp);
+  98   
+  99  option optCr = 0, optca = 0;
+ 100  option limrow=0, limcol=0, solprint=off ;
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Include File Summary
+
+
+   SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
+
+     1        1 INPUT          0       0  /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/AUGMECON2_MIQP2I_Portfolio_payoff.gms
+     2       21 GDXIN          1      21  /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/MtoG.gdx
+
+
+COMPILATION TIME     =        0.002 SECONDS      3 MB  32.2.0 rc62c018 DEX-DEG
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+**** PUT ERROR FOR FILE fx_ AT LINE 121: File attribute argument too large, reset to 32767
+
+
+----    152 SET kk  active objective function in constraint allobj
+
+1
+
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Model Statistics    SOLVE mod_payoff Using MIQCP From line 153
+
+
+LOOPS                                   kp   1
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS           6     SINGLE EQUATIONS           24
+BLOCKS OF VARIABLES           3     SINGLE VARIABLES           13
+NON ZERO ELEMENTS            54     NON LINEAR N-Z             10
+DERIVATIVE POOL              20     CONSTANT POOL              73
+CODE LENGTH                 233     DISCRETE VARIABLES         10
+
+
+GENERATION TIME      =        0.003 SECONDS      4 MB  32.2.0 rc62c018 DEX-DEG
+               L O O P S                 kp 1
+
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 7
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Solution Report     SOLVE mod_payoff Using MIQCP From line 153
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   mod_payoff          OBJECTIVE  obj
+     TYPE    MIQCP               DIRECTION  MAXIMIZE
+     SOLVER  CPLEX               FROM LINE  153
+
+**** SOLVER STATUS     1 Normal Completion         
+**** MODEL STATUS      1 Optimal                   
+**** OBJECTIVE VALUE               -0.2229
+
+ RESOURCE USAGE, LIMIT          0.009 10000000000.000
+ ITERATION COUNT, LIMIT        16    2147483647
+ EVALUATION ERRORS              0             0
+
+IBM ILOG CPLEX   32.2.0 rc62c018 Released Aug 26, 2020 DEG x86 64bit/Mac OS X 
+*** This solver runs with a community license. No commercial use.
+Cplex 12.10.0.0
+
+Space for names approximately 0.00 Mb
+Use option 'names no' to turn use of names off
+MIQCP status(101): integer optimal solution
+Cplex Time: 0.00sec (det. 0.29 ticks)
+Returning a primal only solution to GAMS (marginals all set to NA).
+Proven optimal solution.
+
+MIP Solution:           -0.222877    (16 iterations, 0 nodes)
+Best possible:          -0.222877
+Absolute gap:            0.000000
+Relative gap:            0.000000
+
+
+
+**** REPORT SUMMARY :        0     NONOPT
+                             0 INFEASIBLE
+                             0  UNBOUNDED
+                             0     ERRORS
+                             2  PROJECTED
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 8
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+----    154 VARIABLE x.L  weights of assets
+
+1   2.000,    2  17.000,    3   2.000,    4   3.000,    5  34.000,    6   7.000,    7  54.000,    8   2.000,    9   2.000,    10  2.000
+
+
+----    154 VARIABLE z.L  objective function variable
+
+1 0.223,    2 0.215
+
+
+----    155 MODEL mod_payoff.ModelStat     =        1.000  
+
+----    152 SET kk  active objective function in constraint allobj
+
+2
+
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 9
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Model Statistics    SOLVE mod_payoff Using MIQCP From line 153
+
+
+LOOPS                                   kp   2
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS           6     SINGLE EQUATIONS           24
+BLOCKS OF VARIABLES           3     SINGLE VARIABLES           13
+NON ZERO ELEMENTS            54     NON LINEAR N-Z             10
+DERIVATIVE POOL              20     CONSTANT POOL              73
+CODE LENGTH                 233     DISCRETE VARIABLES         10
+
+
+GENERATION TIME      =        0.001 SECONDS      4 MB  32.2.0 rc62c018 DEX-DEG
+               L O O P S                 kp 2
+
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 10
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Solution Report     SOLVE mod_payoff Using MIQCP From line 153
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   mod_payoff          OBJECTIVE  obj
+     TYPE    MIQCP               DIRECTION  MAXIMIZE
+     SOLVER  CPLEX               FROM LINE  153
+
+**** SOLVER STATUS     1 Normal Completion         
+**** MODEL STATUS      1 Optimal                   
+**** OBJECTIVE VALUE                0.3922
+
+ RESOURCE USAGE, LIMIT          0.007 10000000000.000
+ ITERATION COUNT, LIMIT         0    2147483647
+ EVALUATION ERRORS              0             0
+
+IBM ILOG CPLEX   32.2.0 rc62c018 Released Aug 26, 2020 DEG x86 64bit/Mac OS X 
+*** This solver runs with a community license. No commercial use.
+Cplex 12.10.0.0
+
+Space for names approximately 0.00 Mb
+Use option 'names no' to turn use of names off
+MIQCP status(101): integer optimal solution
+Cplex Time: 0.00sec (det. 0.02 ticks)
+Returning a primal only solution to GAMS (marginals all set to NA).
+Proven optimal solution.
+
+MIP Solution:            0.392239    (0 iterations, 0 nodes)
+Best possible:           0.392239
+Absolute gap:            0.000000
+Relative gap:            0.000000
+
+
+
+**** REPORT SUMMARY :        0     NONOPT
+                             0 INFEASIBLE
+                             0  UNBOUNDED
+                             0     ERRORS
+                             2  PROJECTED
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 18:43:41 Page 11
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+----    154 VARIABLE x.L  weights of assets
+
+1    2.000,    2    2.000,    3    2.000,    4    2.000,    5    2.000,    6    2.000,    7    2.000,    8    2.000,    9    2.000,    10 107.000
+
+
+----    154 VARIABLE z.L  objective function variable
+
+1  1.120,    2 -0.392
+
+
+----    155 MODEL mod_payoff.ModelStat     =        1.000  
+
+**** REPORT FILE SUMMARY
+
+fx_ /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/variables.csv
+
+
+EXECUTION TIME       =        0.048 SECONDS      4 MB  32.2.0 rc62c018 DEX-DEG
+
+
+USER: GAMS Community License for Yi Chen             G200423|0002AO-GEN
+      University of New South Wales, AUSTRALIA                    CL135
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/AUGMECON2_MIQP2I_Portfolio_payoff.gms
+Output     /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/AUGMECON2_MIQP2I_Portfolio_payoff.lst

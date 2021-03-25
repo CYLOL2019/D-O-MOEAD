@@ -1,0 +1,296 @@
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+   1  *TITLE eps-Constraint Method for Multiobjective Optimization (EPSCM,SEQ=319)
+      The eps-Constraint Method
+       
+   6   
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+MIQCP model definitions
+
+
+  10  Option MIQCP = cplex;
+  11  Option IntVarUp = 0;
+  12   
+  13   
+  14   
+  15  set i,n,k;
+  16  Alias (i,j);
+  17   
+  18  Parameter mu(i),nor(n),cov(i,i),SumOne,FloorC,RoundLot,LambdaWs(k);
+  19  *----------------------------gdxin
+GDXIN   /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/MtoG.gdx
+--- LOAD  i = 1:i
+--- LOAD  n = 2:n
+--- LOAD  k = 3:k
+--- LOAD  mu = 4:mu
+--- LOAD  nor = 5:nor
+--- LOAD  cov = 6:cov
+--- LOAD  SumOne = 8:SumOne
+--- LOAD  FloorC = 9:FloorC
+--- LOAD  RoundLot = 10:RoundLot
+--- LOAD  LambdaWs = 7:LambdaWs
+  24  *-----------------------
+  25  Parameter dir(k) direction of the objective functions 1 for max and -1 for min
+  26     / 1  -1
+  27       2  -1
+  28     /;
+  29   
+  30   
+  31  Integer Variables
+  32      x(i) 'weights of assets';
+  33  Variables
+  34      z(k)     'objective function variable'
+  35      Ws  'Weights approach';
+  36   
+  37   
+  38   
+  39   
+  40   
+  41   
+  42  Equations
+  43      SumOneCon  sum to one constraint
+  44      Ws_equation Weights equation
+  45      FloorCon(i) floor constraints
+  46      CeilCon(i) ceil consrraints;
+  47   
+  48   
+  49  Ws_equation .. Ws =e= LambdaWs('1')*(sum(i, x(i)*sum(j,cov(i,j)*x(j)))*sqr(RoundLot)-nor('2'))/(nor('1')-nor('2'))-LambdaWs('2')*(sum(i, x(i)*mu(i)*RoundLot)-nor('4'))/(nor('3')-nor('4'));
+  50  SumOneCon .. sum(i, x(i)) =e= SumOne;
+  51  FloorCon(i) .. x(i) =g= FloorC;
+  52  CeilCon(i) .. x(i) =l= SumOne;
+  53   
+  54  *---------------------------------------------------------------------------
+  55  Model mod_Ws    / Ws_equation, SumOneCon, FloorCon, CeilCon / ;
+  56  *---------------------------------------------------------------------------
+  57  solve mod_Ws using MIQCP minimizing Ws;
+  58   
+  59   
+  60  Parameter xval(i);
+  61  xval(i)=x.l(i);
+  62  Execute_UnloadIdx 'GtoM' xval;
+  63   
+  64   
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Include File Summary
+
+
+   SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
+
+     1        1 INPUT          0       0  /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/AUGMECON2_MIQP2I_Portfolio_eachWs.gms
+     2       21 GDXIN          1      21  /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/MtoG.gdx
+
+
+COMPILATION TIME     =        0.002 SECONDS      3 MB  32.2.0 rc62c018 DEX-DEG
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Equation Listing    SOLVE mod_Ws Using MIQCP From line 57
+
+
+---- Ws_equation  =E=  Weights equation
+
+Ws_equation..  (0.00619180383016243)*x(1) + (0.00739527002449756)*x(2) - (0.00406244189817574)*x(3) - (0.00383443759447139)*x(4) + (0.0061124979853957)*x(5) + (0.00671918769786119)*x(6) + (0.00655661071608939)*x(7) + (0.00703641107692811)*x(8) + (0.00671125711338452)*x(9) + (0.00787308773921711)*x(10) + Ws =E= 0.00429716466358235 ; (LHS = 0, INFES = 0.00429716466358235 ****)
+     
+
+---- SumOneCon  =E=  sum to one constraint
+
+SumOneCon..  x(1) + x(2) + x(3) + x(4) + x(5) + x(6) + x(7) + x(8) + x(9) + x(10) =E= 125 ; (LHS = 0, INFES = 125 ****)
+     
+
+---- FloorCon  =G=  floor constraints
+
+FloorCon(1)..  x(1) =G= 2 ; (LHS = 0, INFES = 2 ****)
+     
+FloorCon(2)..  x(2) =G= 2 ; (LHS = 0, INFES = 2 ****)
+     
+FloorCon(3)..  x(3) =G= 2 ; (LHS = 0, INFES = 2 ****)
+     
+REMAINING 7 ENTRIES SKIPPED
+
+
+---- CeilCon  =L=  ceil consrraints
+
+CeilCon(1)..  x(1) =L= 125 ; (LHS = 0)
+     
+CeilCon(2)..  x(2) =L= 125 ; (LHS = 0)
+     
+CeilCon(3)..  x(3) =L= 125 ; (LHS = 0)
+     
+REMAINING 7 ENTRIES SKIPPED
+
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Column Listing      SOLVE mod_Ws Using MIQCP From line 57
+
+
+---- x  weights of assets
+
+x(1)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       (0.0062) Ws_equation
+        1       SumOneCon
+        1       FloorCon(1)
+        1       CeilCon(1)
+
+x(2)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+       (0.0074) Ws_equation
+        1       SumOneCon
+        1       FloorCon(2)
+        1       CeilCon(2)
+
+x(3)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      (-0.0041) Ws_equation
+        1       SumOneCon
+        1       FloorCon(3)
+        1       CeilCon(3)
+
+REMAINING 7 ENTRIES SKIPPED
+
+---- Ws  Weights approach
+
+Ws
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+        1       Ws_equation
+
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Model Statistics    SOLVE mod_Ws Using MIQCP From line 57
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS           4     SINGLE EQUATIONS           22
+BLOCKS OF VARIABLES           2     SINGLE VARIABLES           11
+NON ZERO ELEMENTS            41     NON LINEAR N-Z             10
+DERIVATIVE POOL              20     CONSTANT POOL              84
+CODE LENGTH                 255     DISCRETE VARIABLES         10
+
+
+GENERATION TIME      =        0.003 SECONDS      4 MB  32.2.0 rc62c018 DEX-DEG
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 7
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Solution Report     SOLVE mod_Ws Using MIQCP From line 57
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   mod_Ws              OBJECTIVE  Ws
+     TYPE    MIQCP               DIRECTION  MINIMIZE
+     SOLVER  CPLEX               FROM LINE  57
+
+**** SOLVER STATUS     1 Normal Completion         
+**** MODEL STATUS      8 Integer Solution          
+**** OBJECTIVE VALUE               -0.8531
+
+ RESOURCE USAGE, LIMIT          0.008 10000000000.000
+ ITERATION COUNT, LIMIT        12    2147483647
+ EVALUATION ERRORS              0             0
+
+IBM ILOG CPLEX   32.2.0 rc62c018 Released Aug 26, 2020 DEG x86 64bit/Mac OS X 
+*** This solver runs with a community license. No commercial use.
+Cplex 12.10.0.0
+
+Space for names approximately 0.00 Mb
+Use option 'names no' to turn use of names off
+MIQP status(102): integer optimal, tolerance
+Cplex Time: 0.00sec (det. 0.28 ticks)
+Fixing integer variables, and solving final QP..
+QP status(1): optimal
+Cplex Time: 0.00sec (det. 0.02 ticks)
+Solution satisfies tolerances.
+
+MIP Solution:           -0.853128    (12 iterations, 0 nodes)
+Final Solve:            -0.853128    (0 iterations)
+
+Best possible:          -0.853128
+Absolute gap:            0.000000
+Relative gap:            0.000001
+
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- EQU Ws_equati~         0.0043         0.0043         0.0043         1.0000      
+---- EQU SumOneCon        125.0000       125.0000       125.0000         EPS         
+
+  Ws_equation  Weights equation
+  SumOneCon  sum to one constraint
+
+---- EQU FloorCon  floor constraints
+
+          LOWER          LEVEL          UPPER         MARGINAL
+
+1          2.0000         2.0000        +INF            EPS         
+2          2.0000        15.0000        +INF            EPS         
+3          2.0000         2.0000        +INF            EPS         
+4          2.0000         2.0000        +INF            EPS         
+5          2.0000         2.0000        +INF            EPS         
+6          2.0000         2.0000        +INF            EPS         
+7          2.0000         2.0000        +INF            EPS         
+8          2.0000         2.0000        +INF            EPS         
+9          2.0000         2.0000        +INF            EPS         
+10         2.0000        94.0000        +INF            EPS         
+
+---- EQU CeilCon  ceil consrraints
+
+          LOWER          LEVEL          UPPER         MARGINAL
+
+1         -INF            2.0000       125.0000         EPS         
+2         -INF           15.0000       125.0000         EPS         
+3         -INF            2.0000       125.0000         EPS         
+4         -INF            2.0000       125.0000         EPS         
+5         -INF            2.0000       125.0000         EPS         
+6         -INF            2.0000       125.0000         EPS         
+7         -INF            2.0000       125.0000         EPS         
+8         -INF            2.0000       125.0000         EPS         
+9         -INF            2.0000       125.0000         EPS         
+10        -INF           94.0000       125.0000         EPS         
+
+---- VAR x  weights of assets
+
+          LOWER          LEVEL          UPPER         MARGINAL
+
+1           .             2.0000        +INF           -0.0054      
+2           .            15.0000        +INF           -0.0068      
+3           .             2.0000        +INF            0.0046      
+4           .             2.0000        +INF            0.0043      
+5           .             2.0000        +INF           -0.0057      
+6           .             2.0000        +INF           -0.0062      
+7           .             2.0000        +INF           -0.0062      
+8           .             2.0000        +INF           -0.0065      
+9           .             2.0000        +INF           -0.0062      
+10          .            94.0000        +INF           -0.0068      
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- VAR Ws                -INF           -0.8531        +INF            EPS         
+
+  Ws  Weights approach
+
+
+**** REPORT SUMMARY :        0     NONOPT
+                             0 INFEASIBLE
+                             0  UNBOUNDED
+                             0     ERRORS
+GAMS 32.2.0  rc62c018 Released Aug 26, 2020 DEX-DEG x86 64bit/Mac OS X - 03/25/21 19:33:38 Page 8
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+EXECUTION TIME       =        0.023 SECONDS      4 MB  32.2.0 rc62c018 DEX-DEG
+
+
+USER: GAMS Community License for Yi Chen             G200423|0002AO-GEN
+      University of New South Wales, AUSTRALIA                    CL135
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/AUGMECON2_MIQP2I_Portfolio_eachWs.gms
+Output     /Users/cy/Documents/GitHub/D&O-MOEAD/ICDV-MOEAD_directdecomp_3Kseconds/do-moead/AUGMECON2_MIQP2I_Portfolio_eachWs.lst
